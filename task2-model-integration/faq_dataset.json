@@ -1,0 +1,17 @@
+[
+  { "question": "What is the minimum eligibility criteria for B.Tech admission?", "answer": "Candidates must have passed 10+2 with Physics, Chemistry, and Mathematics with a minimum aggregate of 45% (40% for reserved categories)", "category": "eligibility" },
+  { "question": "Is there an entrance exam required for admission?", "answer": "Yes, admission is generally through UPSEE/AKTU counselling or a valid JEE Main score, followed by institute-level counselling", "category": "eligibility" },
+  { "question": "What is the last date to submit the application form?", "answer": "The last date for form submission is typically announced on the official admission portal; check the notice board for the current cycle's deadline", "category": "deadlines" },
+  { "question": "Can I apply after the deadline has passed?", "answer": "Late applications are only accepted with a late fee if seats remain vacant, subject to management discretion", "category": "deadlines" },
+  { "question": "What documents are required for admission?", "answer": "You need your 10th and 12th mark sheets, transfer certificate, character certificate, category certificate (if applicable), and passport-size photographs", "category": "documents" },
+  { "question": "Do I need to submit an income certificate?", "answer": "An income certificate is required only if you are applying for a fee concession or scholarship under a reserved category", "category": "documents" },
+  { "question": "What is the total course fee for B.Tech?", "answer": "The fee structure varies by branch and is published on the official fee structure page each academic year", "category": "fees" },
+  { "question": "Are there any scholarships available?", "answer": "Yes, scholarships are available under state government schemes for eligible categories, and merit-based fee waivers for top-ranking students", "category": "fees" },
+  { "question": "How do I apply for an internship under the program?", "answer": "Fill out the online internship application form on the official portal and upload your resume and academic transcripts", "category": "application_process" },
+  { "question": "What is the selection process for internships?", "answer": "Selection is based on resume screening followed by a technical or HR interview round depending on the role", "category": "application_process" },
+  { "question": "Can I defer my admission to the next academic year?", "answer": "Deferral is allowed only in exceptional circumstances and requires written approval from the admission committee", "category": "eligibility" },
+  { "question": "Is hostel accommodation available for outstation students?", "answer": "Yes, hostel accommodation is available on a first-come-first-served basis; apply separately through the hostel admission form", "category": "documents" },
+  { "question": "What is the refund policy if I withdraw after admission?", "answer": "Refunds follow the AICTE-prescribed fee refund policy based on the date of withdrawal request", "category": "fees" },
+  { "question": "Who do I contact for admission-related queries?", "answer": "You can contact the admission cell via the official email or phone number listed on the institute's contact page", "category": "application_process" },
+  { "question": "What is the duration of the internship program?", "answer": "Most internship programs run for 6 to 12 weeks depending on the track selected", "category": "application_process" }
+]

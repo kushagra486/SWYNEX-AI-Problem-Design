@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SWYNEX FAQ Assistant — Demo</title>
+<style>
+  :root{
+    --bg:#0b1220; --panel:#121a2b; --border:#22304a; --text:#e8edf7; --muted:#93a1bd;
+    --accent:#5b8cff; --user:#233a63; --bot:#16233d; --fallback:#5a2a2a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+  .wrap{max-width:760px;margin:0 auto;padding:32px 24px;}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  .logo{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#5b8cff,#7b5bff);display:flex;align-items:center;justify-content:center;font-weight:700;}
+  h1{font-size:19px;margin:0;}
+  .sub{color:var(--muted);font-size:13px;margin-top:2px;}
+  #chat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;min-height:420px;display:flex;flex-direction:column;gap:14px;}
+  .msg{max-width:82%;padding:12px 15px;border-radius:12px;font-size:15px;line-height:1.45;}
+  .msg.user{align-self:flex-end;background:var(--user);border-bottom-right-radius:3px;}
+  .msg.bot{align-self:flex-start;background:var(--bot);border-bottom-left-radius:3px;}
+  .msg.fallback{align-self:flex-start;background:var(--fallback);border-bottom-left-radius:3px;}
+  .meta{font-size:11px;color:var(--muted);margin-top:6px;}
+  .inputbar{display:flex;gap:10px;margin-top:16px;}
+  #q{flex:1;padding:13px 16px;border-radius:10px;border:1px solid var(--border);background:#0e1626;color:var(--text);font-size:15px;}
+  #ask{padding:13px 20px;border-radius:10px;border:none;background:var(--accent);color:white;font-weight:600;font-size:15px;cursor:pointer;}
+  .badge{display:inline-block;font-size:10px;letter-spacing:.04em;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:#1d2b47;color:#9fb4e8;margin-left:6px;}
+  .footer{margin-top:14px;color:var(--muted);font-size:12px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">S</div>
+    <div>
+      <h1>SWYNEX Admission FAQ Assistant <span class="badge">RAG demo</span></h1>
+      <div class="sub">Retrieval-grounded answers over a curated FAQ dataset — free-tier, no fine-tuning</div>
+    </div>
+  </header>
+  <div id="chat"></div>
+  <div class="inputbar">
+    <input id="q" type="text" placeholder="Ask an admission question..." autocomplete="off">
+    <button id="ask">Ask</button>
+  </div>
+  <div class="footer">TF-IDF vector similarity retrieval · similarity threshold fallback · faq_dataset.csv</div>
+</div>
+<script>
+let dataset = [];
+const THRESHOLD = 0.12;
+
+const STOPWORDS = new Set(["a","an","the","is","are","was","were","do","does","did","i","you","he","she","it",
+  "we","they","my","your","his","her","its","our","their","need","to","for","of","in","on","at","by","with",
+  "what","how","can","could","should","would","will","this","that","these","those","and","or","if","be","am",
+  "has","have","had","not","no","yes","please","about","there","get","also","me","us"]);
+
+function tokenize(s){
+  return s.toLowerCase().replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(t => t && !STOPWORDS.has(t));
+}
+
+function buildVocab(docs){
+  const vocab = new Map();
+  docs.forEach(d => tokenize(d).forEach(t => { if(!vocab.has(t)) vocab.set(t, vocab.size); }));
+  return vocab;
+}
+
+function tfidfVectors(docs){
+  const vocab = buildVocab(docs);
+  const N = docs.length;
+  const df = new Array(vocab.size).fill(0);
+  const tfs = docs.map(doc => {
+    const tokens = tokenize(doc);
+    const tf = new Map();
+    tokens.forEach(t => tf.set(t, (tf.get(t)||0)+1));
+    return tf;
+  });
+  tfs.forEach(tf => { for(const t of tf.keys()) df[vocab.get(t)]++; });
+  const vectors = tfs.map(tf => {
+    const vec = new Float64Array(vocab.size);
+    for(const [t,c] of tf.entries()){
+      const idx = vocab.get(t);
+      const idf = Math.log((N+1)/(df[idx]+1)) + 1;
+      vec[idx] = c * idf;
+    }
+    return vec;
+  });
+  return {vocab, vectors};
+}
+
+function vectorizeQuery(text, vocab, docCount, df){
+  const tokens = tokenize(text);
+  const tf = new Map();
+  tokens.forEach(t => tf.set(t, (tf.get(t)||0)+1));
+  const vec = new Float64Array(vocab.size);
+  for(const [t,c] of tf.entries()){
+    if(!vocab.has(t)) continue;
+    const idx = vocab.get(t);
+    const idf = Math.log((docCount+1)/(df[idx]+1)) + 1;
+    vec[idx] = c * idf;
+  }
+  return vec;
+}
+
+function cosine(a,b){
+  let dot=0, na=0, nb=0;
+  for(let i=0;i<a.length;i++){ dot += a[i]*b[i]; na += a[i]*a[i]; nb += b[i]*b[i]; }
+  if(na===0||nb===0) return 0;
+  return dot/(Math.sqrt(na)*Math.sqrt(nb));
+}
+
+let vocab, vectors, df;
+
+async function loadData(){
+  const res = await fetch('faq_dataset.csv');
+  const text = await res.text();
+  const rows = parseCSV(text);
+  dataset = rows.map(r => ({question:r[0], answer:r[1], category:r[2]}));
+  const docs = dataset.map(d => d.question);
+  const built = tfidfVectors(docs);
+  vocab = built.vocab; vectors = built.vectors;
+  df = new Array(vocab.size).fill(0);
+  docs.forEach(doc => {
+    const seen = new Set(tokenize(doc));
+    seen.forEach(t => df[vocab.get(t)]++);
+  });
+}
+
+function parseCSV(text){
+  const lines = text.trim().split(/\r?\n/);
+  const rows = [];
+  for(let i=1;i<lines.length;i++){
+    const line = lines[i];
+    const fields = [];
+    let cur = '', inQ = false;
+    for(let j=0;j<line.length;j++){
+      const ch = line[j];
+      if(ch === '"'){ inQ = !inQ; }
+      else if(ch === ',' && !inQ){ fields.push(cur); cur=''; }
+      else cur += ch;
+    }
+    fields.push(cur);
+    if(fields.length>=2) rows.push(fields);
+  }
+  return rows;
+}
+
+function addMsg(text, cls){
+  const chat = document.getElementById('chat');
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.innerHTML = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+async function ask(query){
+  addMsg(query, 'user');
+  const qvec = vectorizeQuery(query, vocab, dataset.length, df);
+  let best = -1, bestScore = -1;
+  vectors.forEach((v,i) => {
+    const s = cosine(qvec, v);
+    if(s > bestScore){ bestScore = s; best = i; }
+  });
+  await new Promise(r => setTimeout(r, 500));
+  if(bestScore < THRESHOLD){
+    addMsg("I don't have this information — please contact the admission cell.", 'fallback');
+  } else {
+    const match = dataset[best];
+    addMsg(match.answer + `<div class="meta">matched FAQ · category: ${match.category} · similarity ${bestScore.toFixed(2)}</div>`, 'bot');
+  }
+}
+
+document.getElementById('ask').addEventListener('click', () => {
+  const input = document.getElementById('q');
+  const v = input.value.trim();
+  if(!v) return;
+  input.value = '';
+  ask(v);
+});
+document.getElementById('q').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('ask').click();
+});
+
+loadData();
+window.__ask = ask;
+</script>
+</body>
+</html>

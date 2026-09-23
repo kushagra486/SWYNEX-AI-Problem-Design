@@ -75,6 +75,15 @@ usually answered manually over email, WhatsApp, or phone, causing delays and rep
 - Demo script or notebook showing a few example queries and responses.
 - LinkedIn video walking through the problem framing and a live demo.
 
+## 8. Live App
+
+- **Live demo:** https://swynex-faq-assistant.netlify.app
+- A deployable full-stack app lives in [`app/`](app/): a Netlify serverless function
+  (`app/netlify/functions/ask.mts`) serves TF-IDF vector-similarity retrieval over the FAQ
+  dataset with a similarity-threshold fallback, called by the static frontend in `app/public/`.
+- A standalone client-side version (no backend) also lives in [`demo/`](demo/), used to record
+  the LinkedIn video.
+
 ---
 
 *Submitted as part of Task 1 of the SWYNEX Technologies internship — AI Problem Design.*

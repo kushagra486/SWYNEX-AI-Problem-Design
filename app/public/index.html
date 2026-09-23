@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SWYNEX Admission Assistant</title>
+<meta name="description" content="Retrieval-grounded FAQ assistant for admission questions, served by a live serverless backend.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --color-primary:#7C3AED;
+    --color-on-primary:#FFFFFF;
+    --color-secondary:#A78BFA;
+    --color-accent:#0891B2;
+    --color-background:#FAF5FF;
+    --color-foreground:#1E1B4B;
+    --color-muted:#F3EEFC;
+    --color-muted-foreground:#5B5490;
+    --color-surface:#FFFFFF;
+    --color-border:#DDD6FE;
+    --color-destructive:#DC2626;
+    --color-destructive-bg:#FEE2E2;
+    --color-ring:#7C3AED;
+    --radius:14px;
+    --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --color-primary:#A78BFA;
+      --color-on-primary:#1E1B4B;
+      --color-secondary:#7C3AED;
+      --color-accent:#22D3EE;
+      --color-background:#0F0B1F;
+      --color-foreground:#EDE9FE;
+      --color-muted:#1B1533;
+      --color-muted-foreground:#B4ADD9;
+      --color-surface:#171029;
+      --color-border:#2E2652;
+      --color-destructive:#F87171;
+      --color-destructive-bg:#3A1414;
+      --color-ring:#A78BFA;
+    }
+  }
+  :root[data-theme="dark"]{
+    --color-primary:#A78BFA;
+    --color-on-primary:#1E1B4B;
+    --color-secondary:#7C3AED;
+    --color-accent:#22D3EE;
+    --color-background:#0F0B1F;
+    --color-foreground:#EDE9FE;
+    --color-muted:#1B1533;
+    --color-muted-foreground:#B4ADD9;
+    --color-surface:#171029;
+    --color-border:#2E2652;
+    --color-destructive:#F87171;
+    --color-destructive-bg:#3A1414;
+    --color-ring:#A78BFA;
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--color-background);
+    color:var(--color-foreground);
+    font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    font-size:16px;
+    line-height:1.5;
+    min-height:100dvh;
+  }
+  a{color:var(--color-primary)}
+  .skip-link{
+    position:absolute; left:-9999px; top:0; background:var(--color-primary); color:var(--color-on-primary);
+    padding:var(--space-2) var(--space-4); border-radius:8px; z-index:100;
+  }
+  .skip-link:focus{ left:var(--space-4); top:var(--space-4); }
+
+  .wrap{max-width:720px;margin:0 auto;padding:var(--space-6) var(--space-4) var(--space-8);}
+
+  header{display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-6);}
+  .logo{
+    width:40px;height:40px;border-radius:12px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--color-primary),var(--color-accent));
+    display:flex;align-items:center;justify-content:center;
+  }
+  .logo svg{width:22px;height:22px}
+  h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-0.01em;}
+  .sub{color:var(--color-muted-foreground);font-size:13px;margin-top:2px;}
+  .badge{
+    display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;letter-spacing:.03em;
+    text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--color-muted);
+    color:var(--color-primary);margin-left:8px;vertical-align:middle;
+  }
+  .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--color-accent);}
+  @media (prefers-reduced-motion: no-preference){
+    .badge-dot{ animation:pulse 2s ease-in-out infinite; }
+  }
+  @keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+
+  main#chat-region{
+    background:var(--color-surface);
+    border:1px solid var(--color-border);
+    border-radius:var(--radius);
+    padding:var(--space-5, 20px);
+    min-height:400px;
+    display:flex;
+    flex-direction:column;
+    gap:var(--space-4);
+    box-shadow:0 1px 2px rgba(30,27,75,0.04);
+  }
+
+  .msg{
+    max-width:84%;
+    padding:var(--space-3) var(--space-4);
+    border-radius:16px;
+    font-size:15px;
+    line-height:1.5;
+    word-wrap:break-word;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .msg{ animation:rise 220ms ease-out; }
+  }
+  @keyframes rise{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .msg.user{
+    align-self:flex-end;
+    background:var(--color-primary);
+    color:var(--color-on-primary);
+    border-bottom-right-radius:4px;
+  }
+  .msg.bot{
+    align-self:flex-start;
+    background:var(--color-muted);
+    color:var(--color-foreground);
+    border-bottom-left-radius:4px;
+  }
+  .msg.fallback{
+    align-self:flex-start;
+    background:var(--color-destructive-bg);
+    color:var(--color-destructive);
+    border-bottom-left-radius:4px;
+  }
+  .msg.error{
+    align-self:flex-start;
+    background:var(--color-destructive-bg);
+    color:var(--color-destructive);
+    border-bottom-left-radius:4px;
+  }
+  .meta{font-size:11.5px;color:var(--color-muted-foreground);margin-top:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .msg.bot .meta{color:var(--color-muted-foreground);}
+  .msg.user .meta{color:rgba(255,255,255,0.75);}
+
+  .typing{
+    align-self:flex-start;
+    display:flex;
+    align-items:center;
+    gap:4px;
+    background:var(--color-muted);
+    padding:var(--space-3) var(--space-4);
+    border-radius:16px;
+    border-bottom-left-radius:4px;
+  }
+  .typing span{
+    width:6px;height:6px;border-radius:50%;background:var(--color-muted-foreground);display:inline-block;
+  }
+  @media (prefers-reduced-motion: no-preference){
+    .typing span{ animation:bounce 1.1s infinite ease-in-out; }
+    .typing span:nth-child(2){ animation-delay:0.15s; }
+    .typing span:nth-child(3){ animation-delay:0.3s; }
+  }
+  @keyframes bounce{ 0%,60%,100%{transform:translateY(0); opacity:.6;} 30%{transform:translateY(-4px); opacity:1;} }
+
+  .empty-state{
+    margin:auto;
+    text-align:center;
+    color:var(--color-muted-foreground);
+    font-size:14px;
+    padding:var(--space-6);
+  }
+
+  .examples{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-4);}
+  .ex{
+    font-size:13px;
+    padding:8px 14px;
+    min-height:36px;
+    border-radius:20px;
+    background:var(--color-muted);
+    border:1px solid var(--color-border);
+    color:var(--color-foreground);
+    cursor:pointer;
+    transition:background 150ms ease, border-color 150ms ease;
+  }
+  .ex:hover{background:var(--color-secondary);border-color:var(--color-secondary);color:var(--color-on-primary);}
+  .ex:focus-visible{outline:2px solid var(--color-ring);outline-offset:2px;}
+
+  form.inputbar{display:flex;gap:var(--space-2);margin-top:var(--space-4);}
+  .field{flex:1;display:flex;flex-direction:column;gap:4px;}
+  label.visually-hidden{
+    position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;
+  }
+  #q{
+    width:100%;
+    min-height:48px;
+    padding:13px 16px;
+    border-radius:12px;
+    border:1px solid var(--color-border);
+    background:var(--color-surface);
+    color:var(--color-foreground);
+    font-size:16px;
+    font-family:inherit;
+  }
+  #q:focus-visible{outline:2px solid var(--color-ring);outline-offset:1px;border-color:var(--color-primary);}
+  #ask{
+    min-width:88px;
+    min-height:48px;
+    padding:0 var(--space-5, 20px);
+    border-radius:12px;
+    border:none;
+    background:var(--color-primary);
+    color:var(--color-on-primary);
+    font-weight:600;
+    font-size:15px;
+    cursor:pointer;
+    transition:opacity 150ms ease;
+  }
+  #ask:hover:not(:disabled){opacity:0.9;}
+  #ask:focus-visible{outline:2px solid var(--color-ring);outline-offset:2px;}
+  #ask:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .footer{margin-top:var(--space-4);color:var(--color-muted-foreground);font-size:12px;text-align:center;line-height:1.6;}
+  .footer code{background:var(--color-muted);padding:1px 5px;border-radius:4px;font-size:11px;}
+
+  @media (max-width:480px){
+    .wrap{padding:var(--space-4) var(--space-3) var(--space-6);}
+    .msg{max-width:90%;}
+    form.inputbar{flex-direction:column;}
+    #ask{width:100%;}
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#q">Skip to question input</a>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 3L14.5 9.5L21 12L14.5 14.5L12 21L9.5 14.5L3 12L9.5 9.5L12 3Z" fill="white"/>
+      </svg>
+    </div>
+    <div>
+      <h1>SWYNEX Admission Assistant <span class="badge"><span class="badge-dot" aria-hidden="true"></span>Live</span></h1>
+      <div class="sub">Retrieval-grounded answers, served by a live backend function</div>
+    </div>
+  </header>
+
+  <main id="chat-region" aria-label="Conversation" aria-live="polite">
+    <div class="empty-state" id="empty-state">Ask a question below, or try one of the examples.</div>
+  </main>
+
+  <div class="examples" role="group" aria-label="Example questions">
+    <button type="button" class="ex">What percentage do I need in 12th?</button>
+    <button type="button" class="ex">Is there an entrance exam?</button>
+    <button type="button" class="ex">When is the deadline to apply?</button>
+    <button type="button" class="ex">What's the weather today?</button>
+  </div>
+
+  <form class="inputbar" id="ask-form">
+    <div class="field">
+      <label class="visually-hidden" for="q">Ask an admission question</label>
+      <input id="q" name="q" type="text" placeholder="Ask an admission question…" autocomplete="off" required>
+    </div>
+    <button id="ask" type="submit">Ask</button>
+  </form>
+
+  <div class="footer">
+    TF-IDF vector similarity retrieval · runs server-side via <code>/api/ask</code> · similarity threshold fallback
+  </div>
+</div>
+<script>
+const chat = document.getElementById('chat-region');
+const emptyState = document.getElementById('empty-state');
+const form = document.getElementById('ask-form');
+const input = document.getElementById('q');
+const btn = document.getElementById('ask');
+
+function removeEmptyState(){
+  if (emptyState && emptyState.parentNode) emptyState.remove();
+}
+
+function addMsg(html, cls){
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.innerHTML = html;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function showTyping(){
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typing-indicator';
+  div.setAttribute('aria-label', 'Assistant is thinking');
+  div.innerHTML = '<span></span><span></span><span></span>';
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function hideTyping(){
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+function escapeHtml(s){
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+async function ask(query){
+  removeEmptyState();
+  addMsg(escapeHtml(query), 'user');
+  btn.disabled = true;
+  showTyping();
+  try {
+    const res = await fetch('/api/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query })
+    });
+    if (!res.ok) throw new Error('Request failed: ' + res.status);
+    const data = await res.json();
+    hideTyping();
+    if (!data.matched) {
+      addMsg(escapeHtml(data.answer), 'fallback');
+    } else {
+      addMsg(
+        escapeHtml(data.answer) +
+        `<div class="meta">Matched FAQ · category: ${escapeHtml(data.category)} · similarity ${data.similarity.toFixed(2)}</div>`,
+        'bot'
+      );
+    }
+  } catch (err) {
+    hideTyping();
+    addMsg('Something went wrong reaching the assistant. Please try again.', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = input.value.trim();
+  if (!v) return;
+  input.value = '';
+  ask(v);
+});
+
+document.querySelectorAll('.ex').forEach(el => {
+  el.addEventListener('click', () => ask(el.textContent));
+});
+</script>
+</body>
+</html>
