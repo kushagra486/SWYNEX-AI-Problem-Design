@@ -1,0 +1,14 @@
+{
+  "name": "swynex-faq-semantic-search",
+  "version": "1.0.0",
+  "description": "Task 2: integrates a public Hugging Face embedding model (Xenova/all-MiniLM-L6-v2) via transformers.js into a small semantic-search prototype for the SWYNEX admission FAQ assistant.",
+  "type": "module",
+  "main": "semantic_search.mjs",
+  "scripts": {
+    "start": "node semantic_search.mjs",
+    "demo": "node semantic_search.mjs --demo"
+  },
+  "dependencies": {
+    "@xenova/transformers": "^2.17.2"
+  }
+}

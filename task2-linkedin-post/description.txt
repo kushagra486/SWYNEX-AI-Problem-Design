@@ -1,0 +1,17 @@
+Task 2 of my AI Problem Design internship at SWYNEX Technologies (https://www.linkedin.com/company/swynex/): integrate a real model, library, or public AI API into a small prototype.
+
+I upgraded the FAQ assistant from Task 1 with genuine semantic search:
+
+→ Model: Xenova/all-MiniLM-L6-v2 — a public Hugging Face sentence-embedding model
+→ Library: transformers.js, running the model locally via ONNX Runtime
+→ No API key. No paid service. The model downloads once from the public Hub, then runs entirely on-device.
+
+Why it matters: my Task 1 version used TF-IDF, which only matches shared words. "How much percentage do I need in 12th grade to get in?" shares almost no words with "What is the minimum eligibility criteria for B.Tech admission?" — but a real embedding model knows they mean the same thing.
+
+How it works: every question becomes a 384-dimension vector. I compute cosine similarity between the query and all 15 FAQ vectors, take the best match, and check it against a tuned similarity threshold — below that, the system honestly says "I don't know" instead of guessing.
+
+In the video: real terminal output from actual runs, including a genuinely unrelated query to show the guardrail working.
+
+Full prototype, example inputs/outputs, and setup instructions on GitHub — link in comments.
+
+#AI #MachineLearning #HuggingFace #NLP #EmbeddingModels #OpenSource #Internship #SWYNEX #SWYNEXTechnologies #BuildInPublic #SemanticSearch

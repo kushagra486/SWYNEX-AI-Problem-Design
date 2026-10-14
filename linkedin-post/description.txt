@@ -1,0 +1,17 @@
+I built and deployed a real AI FAQ assistant for admission queries — as Task 1 of my AI Problem Design internship at SWYNEX Technologies (https://www.linkedin.com/company/swynex/).
+
+The problem: admission cells answer the same eligibility, fee, and deadline questions over and over, across email, WhatsApp, and phone calls.
+
+What I built:
+→ A live, deployed app (not a mockup) with a real serverless backend
+→ TF-IDF vector similarity retrieval over a curated FAQ dataset — free, open-source, no fine-tuning, no paid APIs
+→ A similarity-threshold fallback, so it says "I don't know" instead of hallucinating an answer
+→ A redesigned chat UI with light/dark mode and accessibility built in
+
+How it works: the browser sends a question to a Netlify serverless function, which tokenizes it, strips stopwords, weights the remaining words with TF-IDF, and finds the closest FAQ match by cosine similarity — grounded answers, zero guessing.
+
+Live app, backend architecture, and a full walkthrough in the video below.
+
+Would love feedback from anyone building retrieval-based systems or working on internship problem statements like this one!
+
+#AI #MachineLearning #ArtificialIntelligence #WebDevelopment #SoftwareEngineering #Internship #BuildInPublic #RAG #OpenSource #TechForGood #StudentDeveloper #SWYNEX #SWYNEXTechnologies

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SWYNEX Admission Assistant — Semantic Search</title>
+<meta name="description" content="Task 2: real Hugging Face embedding model (Xenova/all-MiniLM-L6-v2) running entirely in the browser for semantic FAQ search.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --color-primary:#7C3AED; --color-on-primary:#FFFFFF; --color-secondary:#A78BFA; --color-accent:#0891B2;
+    --color-background:#FAF5FF; --color-foreground:#1E1B4B; --color-muted:#F3EEFC; --color-muted-foreground:#5B5490;
+    --color-surface:#FFFFFF; --color-border:#DDD6FE; --color-destructive:#DC2626; --color-destructive-bg:#FEE2E2;
+    --color-ring:#7C3AED; --radius:14px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --space-8:32px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --color-primary:#A78BFA; --color-on-primary:#1E1B4B; --color-secondary:#7C3AED; --color-accent:#22D3EE;
+      --color-background:#0F0B1F; --color-foreground:#EDE9FE; --color-muted:#1B1533; --color-muted-foreground:#B4ADD9;
+      --color-surface:#171029; --color-border:#2E2652; --color-destructive:#F87171; --color-destructive-bg:#3A1414; --color-ring:#A78BFA;
+    }
+  }
+  :root[data-theme="dark"]{
+    --color-primary:#A78BFA; --color-on-primary:#1E1B4B; --color-secondary:#7C3AED; --color-accent:#22D3EE;
+    --color-background:#0F0B1F; --color-foreground:#EDE9FE; --color-muted:#1B1533; --color-muted-foreground:#B4ADD9;
+    --color-surface:#171029; --color-border:#2E2652; --color-destructive:#F87171; --color-destructive-bg:#3A1414; --color-ring:#A78BFA;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--color-background);color:var(--color-foreground);font-family:'Inter',-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.5;min-height:100dvh;}
+  .wrap{max-width:760px;margin:0 auto;padding:var(--space-6) var(--space-4) var(--space-8);}
+  header{display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4);}
+  .logo{width:40px;height:40px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,var(--color-primary),var(--color-accent));display:flex;align-items:center;justify-content:center;}
+  .logo svg{width:22px;height:22px}
+  h1{font-size:19px;font-weight:700;margin:0;letter-spacing:-0.01em;}
+  .sub{color:var(--color-muted-foreground);font-size:13px;margin-top:2px;}
+  .badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;padding:3px 9px;border-radius:20px;background:var(--color-muted);color:var(--color-primary);margin-left:8px;vertical-align:middle;}
+  .badge-dot{width:6px;height:6px;border-radius:50%;background:var(--color-accent);}
+  @media (prefers-reduced-motion: no-preference){.badge-dot{animation:pulse 2s ease-in-out infinite;}}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  .banner{background:var(--color-muted);border:1px solid var(--color-border);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--color-muted-foreground);margin-bottom:var(--space-4);line-height:1.6;}
+  .banner strong{color:var(--color-foreground);}
+  .banner code{font-family:'JetBrains Mono',monospace;background:var(--color-surface);padding:1px 5px;border-radius:4px;font-size:12px;}
+
+  #status-line{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--color-muted-foreground);margin-bottom:var(--space-4);min-height:20px;}
+  .spinner{width:14px;height:14px;border-radius:50%;border:2px solid var(--color-border);border-top-color:var(--color-primary);flex-shrink:0;}
+  @media (prefers-reduced-motion: no-preference){.spinner{animation:spin 0.8s linear infinite;}}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .progress-track{flex:1;height:6px;background:var(--color-muted);border-radius:3px;overflow:hidden;max-width:220px;}
+  .progress-fill{height:100%;background:var(--color-primary);width:0%;transition:width 200ms ease;}
+
+  main#chat-region{background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius);padding:20px;min-height:360px;display:flex;flex-direction:column;gap:var(--space-4);box-shadow:0 1px 2px rgba(30,27,75,0.04);}
+  .msg{max-width:84%;padding:var(--space-3) var(--space-4);border-radius:16px;font-size:15px;line-height:1.5;word-wrap:break-word;}
+  @media (prefers-reduced-motion: no-preference){.msg{animation:rise 220ms ease-out;}}
+  @keyframes rise{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+  .msg.user{align-self:flex-end;background:var(--color-primary);color:var(--color-on-primary);border-bottom-right-radius:4px;}
+  .msg.bot{align-self:flex-start;background:var(--color-muted);color:var(--color-foreground);border-bottom-left-radius:4px;}
+  .msg.fallback{align-self:flex-start;background:var(--color-destructive-bg);color:var(--color-destructive);border-bottom-left-radius:4px;}
+  .meta{font-size:11.5px;color:var(--color-muted-foreground);margin-top:6px;font-family:'JetBrains Mono',monospace;}
+  .msg.user .meta{color:rgba(255,255,255,0.75);}
+
+  .typing{align-self:flex-start;display:flex;align-items:center;gap:4px;background:var(--color-muted);padding:var(--space-3) var(--space-4);border-radius:16px;border-bottom-left-radius:4px;}
+  .typing span{width:6px;height:6px;border-radius:50%;background:var(--color-muted-foreground);display:inline-block;}
+  @media (prefers-reduced-motion: no-preference){
+    .typing span{animation:bounce 1.1s infinite ease-in-out;}
+    .typing span:nth-child(2){animation-delay:0.15s;}
+    .typing span:nth-child(3){animation-delay:0.3s;}
+  }
+  @keyframes bounce{0%,60%,100%{transform:translateY(0);opacity:.6;}30%{transform:translateY(-4px);opacity:1;}}
+
+  .empty-state{margin:auto;text-align:center;color:var(--color-muted-foreground);font-size:14px;padding:var(--space-6);}
+  .examples{display:flex;flex-wrap:wrap;gap:var(--space-2);margin-top:var(--space-4);}
+  .ex{font-size:13px;padding:8px 14px;min-height:36px;border-radius:20px;background:var(--color-muted);border:1px solid var(--color-border);color:var(--color-foreground);cursor:pointer;transition:background 150ms ease,border-color 150ms ease;}
+  .ex:hover:not(:disabled){background:var(--color-secondary);border-color:var(--color-secondary);color:var(--color-on-primary);}
+  .ex:disabled{opacity:0.4;cursor:not-allowed;}
+  .ex:focus-visible{outline:2px solid var(--color-ring);outline-offset:2px;}
+
+  form.inputbar{display:flex;gap:var(--space-2);margin-top:var(--space-4);}
+  label.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+  #q{width:100%;min-height:48px;padding:13px 16px;border-radius:12px;border:1px solid var(--color-border);background:var(--color-surface);color:var(--color-foreground);font-size:16px;font-family:inherit;}
+  #q:focus-visible{outline:2px solid var(--color-ring);outline-offset:1px;border-color:var(--color-primary);}
+  #q:disabled{opacity:0.6;}
+  #ask{min-width:88px;min-height:48px;padding:0 20px;border-radius:12px;border:none;background:var(--color-primary);color:var(--color-on-primary);font-weight:600;font-size:15px;cursor:pointer;transition:opacity 150ms ease;}
+  #ask:hover:not(:disabled){opacity:0.9;}
+  #ask:focus-visible{outline:2px solid var(--color-ring);outline-offset:2px;}
+  #ask:disabled{opacity:0.5;cursor:not-allowed;}
+
+  .footer{margin-top:var(--space-4);color:var(--color-muted-foreground);font-size:12px;text-align:center;line-height:1.6;}
+  .footer a{color:var(--color-primary);}
+  .footer code{background:var(--color-muted);padding:1px 5px;border-radius:4px;font-size:11px;}
+  @media (max-width:480px){.wrap{padding:var(--space-4) var(--space-3) var(--space-6);}.msg{max-width:90%;}form.inputbar{flex-direction:column;}#ask{width:100%;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3L14.5 9.5L21 12L14.5 14.5L12 21L9.5 14.5L3 12L9.5 9.5L12 3Z" fill="white"/></svg>
+    </div>
+    <div>
+      <h1>SWYNEX Admission Assistant <span class="badge"><span class="badge-dot" aria-hidden="true"></span>Semantic</span></h1>
+      <div class="sub">Task 2 — a real embedding model, running entirely in your browser</div>
+    </div>
+  </header>
+
+  <div class="banner">
+    <strong>Model:</strong> <code>Xenova/all-MiniLM-L6-v2</code> from the public Hugging Face Hub,
+    running client-side via <code>transformers.js</code> (WASM). No API key, no server call for
+    inference — the model downloads once to your browser, then every query is embedded and
+    compared locally.
+  </div>
+
+  <div id="status-line">
+    <div class="spinner" id="spinner"></div>
+    <span id="status-text">Loading model…</span>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+
+  <main id="chat-region" aria-label="Conversation" aria-live="polite">
+    <div class="empty-state" id="empty-state">Waiting for the model to finish loading…</div>
+  </main>
+
+  <div class="examples" role="group" aria-label="Example questions">
+    <button type="button" class="ex" disabled>How much percentage do I need in 12th grade to get in?</button>
+    <button type="button" class="ex" disabled>Do I have to write any test to get admitted?</button>
+    <button type="button" class="ex" disabled>By when should I submit my application?</button>
+    <button type="button" class="ex" disabled>Can you tell me today's cricket score?</button>
+  </div>
+
+  <form class="inputbar" id="ask-form">
+    <div class="field" style="flex:1;">
+      <label class="visually-hidden" for="q">Ask an admission question</label>
+      <input id="q" name="q" type="text" placeholder="Loading model…" autocomplete="off" disabled required>
+    </div>
+    <button id="ask" type="submit" disabled>Ask</button>
+  </form>
+
+  <div class="footer">
+    Real sentence-embedding search, tuned similarity threshold, honest fallback on out-of-scope
+    questions · <a href="https://github.com/kushagra486/SWYNEX-AI-Problem-Design" target="_blank" rel="noopener">source on GitHub</a>
+  </div>
+</div>
+
+<script type="module">
+import { pipeline, cos_sim, env } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
+
+env.allowLocalModels = false;
+
+const SIMILARITY_THRESHOLD = 0.35;
+
+const FAQS = [
+  { question: "What is the minimum eligibility criteria for B.Tech admission?", answer: "Candidates must have passed 10+2 with Physics, Chemistry, and Mathematics with a minimum aggregate of 45% (40% for reserved categories)", category: "eligibility" },
+  { question: "Is there an entrance exam required for admission?", answer: "Yes, admission is generally through UPSEE/AKTU counselling or a valid JEE Main score, followed by institute-level counselling", category: "eligibility" },
+  { question: "What is the last date to submit the application form?", answer: "The last date for form submission is typically announced on the official admission portal; check the notice board for the current cycle's deadline", category: "deadlines" },
+  { question: "Can I apply after the deadline has passed?", answer: "Late applications are only accepted with a late fee if seats remain vacant, subject to management discretion", category: "deadlines" },
+  { question: "What documents are required for admission?", answer: "You need your 10th and 12th mark sheets, transfer certificate, character certificate, category certificate (if applicable), and passport-size photographs", category: "documents" },
+  { question: "Do I need to submit an income certificate?", answer: "An income certificate is required only if you are applying for a fee concession or scholarship under a reserved category", category: "documents" },
+  { question: "What is the total course fee for B.Tech?", answer: "The fee structure varies by branch and is published on the official fee structure page each academic year", category: "fees" },
+  { question: "Are there any scholarships available?", answer: "Yes, scholarships are available under state government schemes for eligible categories, and merit-based fee waivers for top-ranking students", category: "fees" },
+  { question: "How do I apply for an internship under the program?", answer: "Fill out the online internship application form on the official portal and upload your resume and academic transcripts", category: "application_process" },
+  { question: "What is the selection process for internships?", answer: "Selection is based on resume screening followed by a technical or HR interview round depending on the role", category: "application_process" },
+  { question: "Can I defer my admission to the next academic year?", answer: "Deferral is allowed only in exceptional circumstances and requires written approval from the admission committee", category: "eligibility" },
+  { question: "Is hostel accommodation available for outstation students?", answer: "Yes, hostel accommodation is available on a first-come-first-served basis; apply separately through the hostel admission form", category: "documents" },
+  { question: "What is the refund policy if I withdraw after admission?", answer: "Refunds follow the AICTE-prescribed fee refund policy based on the date of withdrawal request", category: "fees" },
+  { question: "Who do I contact for admission-related queries?", answer: "You can contact the admission cell via the official email or phone number listed on the institute's contact page", category: "application_process" },
+  { question: "What is the duration of the internship program?", answer: "Most internship programs run for 6 to 12 weeks depending on the track selected", category: "application_process" },
+];
+
+const chat = document.getElementById('chat-region');
+const emptyState = document.getElementById('empty-state');
+const form = document.getElementById('ask-form');
+const input = document.getElementById('q');
+const btn = document.getElementById('ask');
+const statusText = document.getElementById('status-text');
+const spinner = document.getElementById('spinner');
+const progressFill = document.getElementById('progress-fill');
+const exampleButtons = document.querySelectorAll('.ex');
+
+let extractor = null;
+let faqVectors = [];
+
+function removeEmptyState(){ if (emptyState && emptyState.parentNode) emptyState.remove(); }
+
+function addMsg(html, cls){
+  const div = document.createElement('div');
+  div.className = 'msg ' + cls;
+  div.innerHTML = html;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function showTyping(){
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typing-indicator';
+  div.setAttribute('aria-label', 'Computing embedding');
+  div.innerHTML = '<span></span><span></span><span></span>';
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+function hideTyping(){ const el = document.getElementById('typing-indicator'); if (el) el.remove(); }
+
+function escapeHtml(s){ const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+async function embed(text){
+  const output = await extractor(text, { pooling: 'mean', normalize: true });
+  return Array.from(output.data);
+}
+
+async function ask(query){
+  removeEmptyState();
+  addMsg(escapeHtml(query), 'user');
+  btn.disabled = true;
+  input.disabled = true;
+  showTyping();
+
+  const t0 = performance.now();
+  const qvec = await embed(query);
+  let bestIdx = -1, bestScore = -Infinity;
+  for (let i = 0; i < faqVectors.length; i++) {
+    const score = cos_sim(qvec, faqVectors[i]);
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  }
+  const ms = Math.round(performance.now() - t0);
+  hideTyping();
+
+  if (bestScore < SIMILARITY_THRESHOLD) {
+    addMsg(
+      "I don't have this information — please contact the admission cell." +
+      `<div class="meta">similarity ${bestScore.toFixed(4)} &lt; threshold 0.35 · embedded in ${ms}ms</div>`,
+      'fallback'
+    );
+  } else {
+    const match = FAQS[bestIdx];
+    addMsg(
+      escapeHtml(match.answer) +
+      `<div class="meta">matched: "${escapeHtml(match.question)}" · category: ${match.category} · similarity ${bestScore.toFixed(4)} · embedded in ${ms}ms</div>`,
+      'bot'
+    );
+  }
+  btn.disabled = false;
+  input.disabled = false;
+  input.focus();
+}
+
+form.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const v = input.value.trim();
+  if (!v) return;
+  input.value = '';
+  ask(v);
+});
+exampleButtons.forEach(el => el.addEventListener('click', () => { if (!el.disabled) ask(el.textContent); }));
+
+async function init(){
+  try {
+    statusText.textContent = 'Downloading model (first visit only)…';
+    extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      progress_callback: (p) => {
+        if (p.status === 'progress' && typeof p.progress === 'number') {
+          progressFill.style.width = Math.min(100, Math.round(p.progress)) + '%';
+          statusText.textContent = `Downloading model… ${Math.round(p.progress)}%`;
+        }
+      }
+    });
+
+    statusText.textContent = `Embedding ${FAQS.length} FAQ questions…`;
+    for (const faq of FAQS) {
+      faqVectors.push(await embed(faq.question));
+    }
+
+    spinner.style.display = 'none';
+    progressFill.parentElement.style.display = 'none';
+    statusText.textContent = 'Model ready — running entirely in your browser';
+    input.disabled = false;
+    btn.disabled = false;
+    input.placeholder = 'Ask an admission question…';
+    exampleButtons.forEach(el => el.disabled = false);
+    emptyState.textContent = 'Ask a question below, or try one of the examples.';
+  } catch (err) {
+    spinner.style.display = 'none';
+    statusText.textContent = 'Failed to load the model: ' + err.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
