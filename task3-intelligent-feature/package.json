@@ -1,0 +1,16 @@
+{
+  "name": "swynex-intelligent-faq-assistant",
+  "version": "1.0.0",
+  "description": "Task 3: adds an intelligent confidence-tiered answer feature with error handling, a labeled evaluation harness, and a simple REPL interface on top of the Task 2 semantic-search prototype.",
+  "type": "module",
+  "main": "assistant.mjs",
+  "scripts": {
+    "start": "node assistant.mjs",
+    "demo": "node assistant.mjs --demo",
+    "eval": "node eval.mjs",
+    "repl": "node assistant.mjs --repl"
+  },
+  "dependencies": {
+    "@xenova/transformers": "^2.17.2"
+  }
+}
